@@ -1,0 +1,4 @@
+ls
+cd docs
+ls file.txt
+exit

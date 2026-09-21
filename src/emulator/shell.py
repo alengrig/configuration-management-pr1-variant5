@@ -7,9 +7,10 @@ import socket
 class Shell:
     """Simple command shell emulator."""
 
-    def __init__(self):
+    def __init__(self, vfs=None):
         """Initialize shell state."""
         self.running = True
+        self.vfs = vfs
 
     def build_prompt(self):
         """Build prompt from real operating system data."""
