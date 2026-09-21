@@ -85,7 +85,36 @@ class ShellTests(unittest.TestCase):
         self.shell.execute("exit", [])
 
         self.assertFalse(self.shell.running)
+    def test_script_stops_on_error(self):
+        """Startup script should stop after first error."""
+        lines = [
+            "ls\n",
+            "hello\n",
+            "cd ignored\n",
+        ]
+        output = StringIO()
 
+        with redirect_stdout(output):
+            result = self.shell._run_script_lines(lines)
+
+        text = output.getvalue()
+        self.assertFalse(result)
+        self.assertIn("unknown command: hello", text)
+        self.assertNotIn("cd: ['ignored']", text)
+
+    def test_script_runs_successfully(self):
+        """Valid startup script should run completely."""
+        lines = [
+            "ls\n",
+            "cd docs\n",
+        ]
+        output = StringIO()
+
+        with redirect_stdout(output):
+            result = self.shell._run_script_lines(lines)
+
+        self.assertTrue(result)
+        self.assertIn("cd: ['docs']", output.getvalue())
 
 if __name__ == "__main__":
     unittest.main()

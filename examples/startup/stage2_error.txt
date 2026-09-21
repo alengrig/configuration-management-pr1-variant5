@@ -1,0 +1,3 @@
+ls
+hello
+cd this-command-must-not-run
