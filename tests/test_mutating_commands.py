@@ -13,19 +13,19 @@ from emulator.vfs import VirtualFileSystem
 class MutatingCommandTests(unittest.TestCase):
     """Test rm and cp commands."""
 
-    def setUp(self):
-        """Create an in-memory VFS for every test."""
+    def _create_shell(self):
+        """Create an in-memory VFS for a test."""
         vfs = VirtualFileSystem()
         vfs.directories.add("/docs")
         vfs.files["/readme.txt"] = b"root\n"
-        self.shell = Shell(vfs)
+        return Shell(vfs)
 
-    def execute(self, command, arguments):
+    def _execute(self, shell, command, arguments):
         """Execute a command and capture its output."""
         output = StringIO()
 
         with redirect_stdout(output):
-            result = self.shell.execute(
+            result = shell.execute(
                 command,
                 arguments,
             )
@@ -34,7 +34,9 @@ class MutatingCommandTests(unittest.TestCase):
 
     def test_rm_file(self):
         """Rm should remove a file from memory."""
-        result, _ = self.execute(
+        shell = self._create_shell()
+        result, _ = self._execute(
+            shell,
             "rm",
             ["readme.txt"],
         )
@@ -42,12 +44,14 @@ class MutatingCommandTests(unittest.TestCase):
         self.assertTrue(result)
         self.assertNotIn(
             "/readme.txt",
-            self.shell.vfs.files,
+            shell.vfs.files,
         )
 
     def test_rm_missing_file(self):
         """Rm should report a missing file."""
-        result, output = self.execute(
+        shell = self._create_shell()
+        result, output = self._execute(
+            shell,
             "rm",
             ["missing.txt"],
         )
@@ -57,33 +61,39 @@ class MutatingCommandTests(unittest.TestCase):
 
     def test_cp_file(self):
         """Cp should create an in-memory copy."""
-        result, _ = self.execute(
+        shell = self._create_shell()
+        result, _ = self._execute(
+            shell,
             "cp",
             ["readme.txt", "copy.txt"],
         )
 
         self.assertTrue(result)
         self.assertEqual(
-            self.shell.vfs.files["/copy.txt"],
+            shell.vfs.files["/copy.txt"],
             b"root\n",
         )
 
     def test_cp_to_directory(self):
         """Cp should copy a file into a directory."""
-        result, _ = self.execute(
+        shell = self._create_shell()
+        result, _ = self._execute(
+            shell,
             "cp",
             ["readme.txt", "docs"],
         )
 
         self.assertTrue(result)
         self.assertEqual(
-            self.shell.vfs.files["/docs/readme.txt"],
+            shell.vfs.files["/docs/readme.txt"],
             b"root\n",
         )
 
     def test_cp_missing_source(self):
         """Cp should report a missing source."""
-        result, output = self.execute(
+        shell = self._create_shell()
+        result, output = self._execute(
+            shell,
             "cp",
             ["missing.txt", "copy.txt"],
         )
@@ -93,7 +103,9 @@ class MutatingCommandTests(unittest.TestCase):
 
     def test_cp_missing_parent(self):
         """Cp should reject a missing destination directory."""
-        result, output = self.execute(
+        shell = self._create_shell()
+        result, output = self._execute(
+            shell,
             "cp",
             ["readme.txt", "missing/copy.txt"],
         )

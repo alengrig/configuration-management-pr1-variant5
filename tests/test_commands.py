@@ -11,8 +11,8 @@ from emulator.vfs import VirtualFileSystem
 class CommandTests(unittest.TestCase):
     """Test commands working with the in-memory VFS."""
 
-    def setUp(self):
-        """Create a small VFS for every test."""
+    def _create_shell(self):
+        """Create a small VFS for a test."""
         vfs = VirtualFileSystem()
         vfs.directories.update(
             {
@@ -24,14 +24,14 @@ class CommandTests(unittest.TestCase):
         vfs.files["/docs/guide.txt"] = (
             b"line 1\nline 2\nline 3\n"
         )
-        self.shell = Shell(vfs)
+        return Shell(vfs)
 
-    def execute(self, command, arguments=None):
+    def _execute(self, shell, command, arguments=None):
         """Execute a command and capture its output."""
         output = StringIO()
 
         with redirect_stdout(output):
-            result = self.shell.execute(
+            result = shell.execute(
                 command,
                 arguments or [],
             )
@@ -40,14 +40,16 @@ class CommandTests(unittest.TestCase):
 
     def test_pwd_root(self):
         """Pwd should initially print root."""
-        result, output = self.execute("pwd")
+        shell = self._create_shell()
+        result, output = self._execute(shell, "pwd")
 
         self.assertTrue(result)
         self.assertEqual(output.strip(), "/")
 
     def test_ls_root(self):
         """Ls should list direct root children."""
-        result, output = self.execute("ls")
+        shell = self._create_shell()
+        result, output = self._execute(shell, "ls")
 
         self.assertTrue(result)
         self.assertEqual(
@@ -57,39 +59,62 @@ class CommandTests(unittest.TestCase):
 
     def test_cd_relative(self):
         """Cd should support relative directory paths."""
-        result, _ = self.execute("cd", ["docs"])
+        shell = self._create_shell()
+        result, _ = self._execute(
+            shell,
+            "cd",
+            ["docs"],
+        )
 
         self.assertTrue(result)
-        self.assertEqual(self.shell.current_directory, "/docs")
+        self.assertEqual(shell.current_directory, "/docs")
 
     def test_cd_parent(self):
         """Cd should support parent directory."""
-        self.shell.current_directory = "/docs"
-        result, _ = self.execute("cd", [".."])
+        shell = self._create_shell()
+        shell.current_directory = "/docs"
+
+        result, _ = self._execute(
+            shell,
+            "cd",
+            [".."],
+        )
 
         self.assertTrue(result)
-        self.assertEqual(self.shell.current_directory, "/")
+        self.assertEqual(shell.current_directory, "/")
 
     def test_cd_absolute(self):
         """Cd should support absolute paths."""
-        result, _ = self.execute("cd", ["/docs/deep"])
+        shell = self._create_shell()
+        result, _ = self._execute(
+            shell,
+            "cd",
+            ["/docs/deep"],
+        )
 
         self.assertTrue(result)
         self.assertEqual(
-            self.shell.current_directory,
+            shell.current_directory,
             "/docs/deep",
         )
 
     def test_cd_missing(self):
         """Cd should fail for a missing directory."""
-        result, output = self.execute("cd", ["missing"])
+        shell = self._create_shell()
+        result, output = self._execute(
+            shell,
+            "cd",
+            ["missing"],
+        )
 
         self.assertFalse(result)
         self.assertIn("no such directory", output)
 
     def test_cat(self):
         """Cat should print a file."""
-        result, output = self.execute(
+        shell = self._create_shell()
+        result, output = self._execute(
+            shell,
             "cat",
             ["/readme.txt"],
         )
@@ -99,7 +124,9 @@ class CommandTests(unittest.TestCase):
 
     def test_head_default(self):
         """Head should print a short file completely."""
-        result, output = self.execute(
+        shell = self._create_shell()
+        result, output = self._execute(
+            shell,
             "head",
             ["/docs/guide.txt"],
         )
@@ -112,7 +139,9 @@ class CommandTests(unittest.TestCase):
 
     def test_head_line_count(self):
         """Head should support the -n option."""
-        result, output = self.execute(
+        shell = self._create_shell()
+        result, output = self._execute(
+            shell,
             "head",
             ["-n", "2", "/docs/guide.txt"],
         )
@@ -122,7 +151,9 @@ class CommandTests(unittest.TestCase):
 
     def test_cat_missing(self):
         """Cat should report a missing file."""
-        result, output = self.execute(
+        shell = self._create_shell()
+        result, output = self._execute(
+            shell,
             "cat",
             ["missing.txt"],
         )
