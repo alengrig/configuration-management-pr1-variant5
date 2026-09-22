@@ -1,0 +1,14 @@
+pwd
+ls
+cp readme.txt copy.txt
+ls
+cat copy.txt
+cp readme.txt docs
+ls docs
+cat docs/readme.txt
+rm copy.txt
+rm docs/readme.txt
+ls
+ls docs
+cat readme.txt
+exit

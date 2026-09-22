@@ -1,0 +1,2 @@
+cp missing.txt copy.txt
+ls

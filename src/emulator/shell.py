@@ -1,11 +1,13 @@
 """Interactive shell implementation."""
 
 import getpass
+import posixpath
 import socket
 
 DEFAULT_HEAD_LINES = 10
 NO_ARGUMENTS = 0
 ONE_ARGUMENT = 1
+TWO_ARGUMENTS = 2
 THREE_ARGUMENTS = 3
 MIN_HEAD_LINES = 1
 
@@ -49,6 +51,8 @@ class Shell:
             "pwd": self._command_pwd,
             "cat": self._command_cat,
             "head": self._command_head,
+        "rm": self._command_rm,
+        "cp": self._command_cp,
         }
         handler = handlers.get(command)
 
@@ -195,6 +199,74 @@ class Shell:
             print()
 
         return True
+
+    def _command_rm(self, arguments):
+        """Remove one file from the in-memory VFS."""
+        if not self._check_file_arguments("rm", arguments):
+            return False
+
+        path = arguments[0]
+        target = self.vfs.resolve_path(
+            self.current_directory,
+            path,
+        )
+
+        if not self.vfs.is_file(target):
+            print(f"Error: rm: no such file: {path}")
+            return False
+
+        del self.vfs.files[target]
+        return True
+
+    def _command_cp(self, arguments):
+        """Copy one file inside the in-memory VFS."""
+        if self.vfs is None:
+            print("Error: cp: VFS is not loaded")
+            return False
+
+        if len(arguments) != TWO_ARGUMENTS:
+            print("Error: cp: expected source and destination")
+            return False
+
+        source = self.vfs.resolve_path(
+            self.current_directory,
+            arguments[0],
+        )
+        destination = self.vfs.resolve_path(
+            self.current_directory,
+            arguments[1],
+        )
+
+        if not self.vfs.is_file(source):
+            print(f"Error: cp: no such file: {arguments[0]}")
+            return False
+
+        destination = self._copy_destination(
+            source,
+            destination,
+        )
+
+        if destination is None:
+            return False
+
+        self.vfs.files[destination] = bytes(
+            self.vfs.files[source]
+        )
+        return True
+
+    def _copy_destination(self, source, destination):
+        """Validate and prepare a copy destination."""
+        if self.vfs.is_directory(destination):
+            name = posixpath.basename(source)
+            return posixpath.join(destination, name)
+
+        parent = posixpath.dirname(destination) or "/"
+
+        if not self.vfs.is_directory(parent):
+            print("Error: cp: destination directory does not exist")
+            return None
+
+        return destination
 
     def run_script(self, path):
         """Execute commands from a startup script."""
