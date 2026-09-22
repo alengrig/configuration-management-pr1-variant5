@@ -1,5 +1,6 @@
 """In-memory virtual file system."""
 
+import posixpath
 from pathlib import Path
 
 
@@ -52,3 +53,53 @@ class VirtualFileSystem:
 
         if item.is_file():
             self.files[virtual_path] = item.read_bytes()
+
+    def resolve_path(self, current_directory, path):
+        """Convert a shell path to an absolute VFS path."""
+        if path.startswith("/"):
+            candidate = path
+        else:
+            candidate = posixpath.join(current_directory, path)
+
+        return posixpath.normpath(candidate)
+
+    def is_directory(self, path):
+        """Return whether path points to a directory."""
+        return path in self.directories
+
+    def is_file(self, path):
+        """Return whether path points to a file."""
+        return path in self.files
+
+    def list_directory(self, path):
+        """Return direct children of a directory."""
+        names = set()
+
+        for directory in self.directories:
+            name = self._direct_child(path, directory)
+            if name:
+                names.add(name)
+
+        for file_path in self.files:
+            name = self._direct_child(path, file_path)
+            if name:
+                names.add(name)
+
+        return sorted(names)
+
+    def _direct_child(self, parent, candidate):
+        """Return child name when candidate is directly below parent."""
+        prefix = "/" if parent == "/" else f"{parent}/"
+
+        if candidate == parent:
+            return None
+
+        if not candidate.startswith(prefix):
+            return None
+
+        remainder = candidate[len(prefix):]
+
+        if not remainder or "/" in remainder:
+            return None
+
+        return remainder

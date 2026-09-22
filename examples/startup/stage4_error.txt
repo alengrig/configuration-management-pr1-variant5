@@ -1,0 +1,3 @@
+pwd
+cat missing.txt
+ls

@@ -1,0 +1,10 @@
+pwd
+ls
+cd docs
+pwd
+ls
+cat guide.txt
+head -n 2 guide.txt
+cd ..
+pwd
+exit
